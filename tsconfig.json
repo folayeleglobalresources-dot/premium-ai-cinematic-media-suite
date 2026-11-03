@@ -40,6 +40,12 @@
     "node_modules",
     "archive",
     "feature-imports",
-    "original-source"
+    "original-source",
+    "src/components/editor/AIDirector.tsx",
+    "src/components/editor/EditorWorkspace.tsx",
+    "src/components/editor/Inspector.tsx",
+    "src/components/editor/MediaBin.tsx",
+    "src/components/editor/ProjectsPanel.tsx",
+    "src/lib/editor"
   ]
 }
