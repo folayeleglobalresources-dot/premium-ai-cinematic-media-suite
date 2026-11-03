@@ -304,8 +304,8 @@ function dtoToAssetMeta(dto: AssetDTO): AssetMeta {
 }
 
 export async function fetchAssets(): Promise<AssetMeta[]> {
-  const res = await jsonFetch<{ assets: AssetDTO[] }>("/api/assets");
-  return res.assets.map(dtoToAssetMeta);
+  const res = await jsonFetch<AssetDTO[] | { assets: AssetDTO[] }>("/api/assets");
+  return (Array.isArray(res) ? res : res.assets).map(dtoToAssetMeta);
 }
 
 export async function updateAsset(id: string, patch: Partial<AssetMeta>): Promise<AssetMeta | null> {
