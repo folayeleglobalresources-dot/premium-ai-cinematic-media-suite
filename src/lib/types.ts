@@ -301,3 +301,28 @@ export type Wheel = { x: number; y: number; m: number };
 export function defaultGrade(): Grade {
   return { ...DEFAULT_GRADE };
 }
+
+
+/** Browser-local media record synchronized with the server asset registry. */
+export type AssetMeta = {
+  id: string;
+  name: string;
+  kind: "video" | "image" | "audio";
+  mime: string;
+  source: string;
+  durationSec: number;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  thumbnail: string | null;
+  filmstrip: string[];
+  peaks: number[];
+  slate: Record<string, string>;
+  tags: string[];
+  analysis: Record<string, unknown>;
+  captions: { start: number; end: number; text: string }[];
+  rating: number;
+  favorite: boolean;
+  projectId: string | null;
+  createdAt: string;
+};
