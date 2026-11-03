@@ -417,3 +417,14 @@ export function wheelToRgb(wheel: { x: number; y: number; m: number }, _exposure
   const rgb = tintVector(hue, radius * Math.max(-1, Math.min(1, wheel.m)));
   return rgb;
 }
+
+
+/** Rank built-in looks against a natural-language creative brief. */
+export function matchLooks(query: string): { look: Look; score: number }[] {
+  const terms = query.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
+  return BUILTIN_LOOKS.map((look) => {
+    const haystack = `${look.name} ${look.category} ${look.description} ${look.id}`.toLowerCase();
+    const score = terms.reduce((total, term) => total + (haystack.includes(term) ? (look.name.toLowerCase().includes(term) ? 3 : 1) : 0), 0);
+    return { look, score };
+  }).sort((a, b) => b.score - a.score);
+}
