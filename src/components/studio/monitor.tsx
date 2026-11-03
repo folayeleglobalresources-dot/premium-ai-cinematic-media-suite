@@ -367,14 +367,14 @@ export function LookBrowser({ grade, onChange, compact }: { grade: Grade; onChan
           <div className="truncate text-[9.5px] text-smoke">Camera native</div>
         </button>
         {list.map((l) => (
-          <button key={l.id} title={`${l.reference} — ${l.rationale}`} onClick={() => onChange({ ...grade, look: l.id, lookAmount: grade.look ? grade.lookAmount : 1 })} className={cn("rounded-lg border p-2 text-left transition", grade.look === l.id ? "border-gold/60 bg-gold/10" : "border-line hover:border-line-2")}>
+          <button key={l.id} title={`${l.category} — ${l.description}`} onClick={() => onChange({ ...grade, look: l.id, lookAmount: grade.look ? grade.lookAmount : 1 })} className={cn("rounded-lg border p-2 text-left transition", grade.look === l.id ? "border-gold/60 bg-gold/10" : "border-line hover:border-line-2")}>
             <div className="mb-1.5 flex h-5 overflow-hidden rounded">
               {l.swatch.map((c) => (
                 <span key={c} className="flex-1" style={{ background: c }} />
               ))}
             </div>
             <div className="truncate text-[11px] font-semibold text-ivory">{l.name}</div>
-            <div className="truncate text-[9.5px] text-smoke">{l.reference}</div>
+            <div className="truncate text-[9.5px] text-smoke">{l.category}</div>
           </button>
         ))}
       </div>
