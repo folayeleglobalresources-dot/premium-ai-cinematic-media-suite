@@ -353,3 +353,5 @@ export const FORMAT_PRESETS: FormatPreset[] = [
   { id: "super16", label: "Super 16", group: "Vintage", width: 2048, height: 1536, aspect: "4:3", fps: 24, note: "A classic 4:3 frame for a tactile film-era feel." },
   { id: "academy", label: "Academy 35mm", group: "Vintage", width: 1828, height: 1332, aspect: "1.37:1", fps: 24, note: "The traditional Academy frame for period-inspired work." },
 ];
+
+export type TitlePreset = "lower-third" | "credits" | "chapter" | "epic" | "neon" | "documentary" | "minimal" | "kinetic" | "cinematic";
