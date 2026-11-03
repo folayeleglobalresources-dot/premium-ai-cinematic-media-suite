@@ -1,0 +1,48 @@
+{
+  "product": "LUMIÈRE — Premium AI Cinematic Media Suite",
+  "active_base": "LUMIÈRE source (premium-ai-cinematic-media-suite (1).zip)",
+  "secondary_source": "OBSIDIAN source (premium-ai-cinematic-media-suite.zip)",
+  "reconciliation_status": "single active runtime; incompatible OBSIDIAN implementation archived for controlled future porting",
+  "active_workspaces": [
+    "Atelier production home",
+    "Capture camera studio",
+    "Broadcast live studio",
+    "Montage editor and timeline",
+    "Vault media library",
+    "Writers' Room",
+    "AI Director integrated with Montage"
+  ],
+  "reconciled_contracts": {
+    "database": "LUMIÈRE schema is authoritative: projects, assets, stream_destinations, stream_sessions, shotlists",
+    "timeline": "LUMIÈRE timeline and ProjectDoc types are authoritative",
+    "color_grading": "LUMIÈRE Grade/Look implementation is authoritative; OBSIDIAN's incompatible grade engine is archived",
+    "media_storage": "LUMIÈRE active local-media workflow is authoritative; OBSIDIAN filePath/thumbPath storage routes are archived",
+    "ai": "LUMIÈRE local/optional-provider AI Director and shot-list APIs are authoritative",
+    "navigation": "AI Director route opens Montage with its Director panel; unsupported OBSIDIAN Settings route removed from navigation",
+    "pwa": "One Next.js app manifest and one active SVG icon"
+  },
+  "archive": {
+    "obsidian_original_source": "archive/obsidian/original-source/",
+    "incompatible_feature_imports": "archive/obsidian/feature-imports/",
+    "conflicting_files": "archive/obsidian/"
+  },
+  "infrastructure_added": [
+    "drizzle/0000_initial.sql",
+    "drizzle/meta/_journal.json",
+    "drizzle.config.ts",
+    ".env.example",
+    "scripts/verify-source.mjs"
+  ],
+  "validation": {
+    "source_integrity": "passed",
+    "local_import_resolution": "passed",
+    "navigation_route_check": "passed",
+    "typescript_tsx_syntax_transpile": "passed",
+    "dependency_install": "blocked: npm install timed out in this environment",
+    "full_typecheck": "not completed: dependencies unavailable",
+    "lint": "not completed: eslint dependency unavailable",
+    "production_build": "not completed: next dependency unavailable",
+    "database_integration": "not run: no DATABASE_URL or PostgreSQL service supplied",
+    "browser_camera_broadcast_tests": "not run: browser runtime and devices not available"
+  }
+}
