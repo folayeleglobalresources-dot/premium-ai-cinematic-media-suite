@@ -149,10 +149,10 @@ export function localDirector(input: string, ctx: DirectorContext): DirectorRepl
 
   if (isQuestion) {
     const recs = matchLooks(whole).slice(0, 3);
-    const list = (recs.length ? recs.map((r) => r.look) : LOOKS.filter((l) => ["kodak2383", "teal-orange", "golden"].includes(l.id))).slice(0, 3);
+    const list = (recs.length ? recs.map((r) => r.look) : LOOKS.filter((l) => ["golden-vision", "teal-amber", "natural"].includes(l.id))).slice(0, 3);
     return {
       reply: `For that, I'd consider: ${list
-        .map((l) => `**${l.name}** (${l.reference}) — it ${l.rationale}`)
+        .map((l) => `**${l.name}** — ${l.description}`)
         .join("; ")}. Pick one and I'll apply it, then we can refine contrast and skin tones together.`,
       actions: [],
       suggestions: list.map((l) => `Apply ${l.name}`),
