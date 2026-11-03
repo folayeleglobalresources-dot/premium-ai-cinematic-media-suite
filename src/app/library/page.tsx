@@ -1,7 +1,7 @@
-import { LibraryGrid } from "@/components/library/LibraryGrid";
+import { Vault } from "@/components/library/Vault";
 
-export const metadata = { title: "Vault — Obsidian" };
+export const metadata = { title: "Vault — LUMIÈRE" };
 
 export default function LibraryPage() {
-  return <LibraryGrid />;
+  return <Vault />;
 }
