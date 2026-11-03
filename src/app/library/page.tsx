@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
-import { Vault } from "@/components/library/Vault";
+import { LibraryGrid } from "@/components/library/LibraryGrid";
 
-export const metadata: Metadata = { title: "Vault — LUMIÈRE" };
+export const metadata = { title: "Vault — Obsidian" };
 
 export default function LibraryPage() {
-  return <Vault />;
+  return <LibraryGrid />;
 }

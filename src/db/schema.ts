@@ -1,96 +1,104 @@
 import {
-  boolean,
-  doublePrecision,
-  integer,
-  jsonb,
   pgTable,
+  serial,
   text,
+  integer,
+  bigint,
+  boolean,
   timestamp,
+  jsonb,
+  real,
 } from "drizzle-orm/pg-core";
 
-/**
- * LUMIÈRE — production database.
- * Media binaries live on-device (IndexedDB, like a local media cache / proxy store),
- * while every project, asset record, slate, AI analysis and broadcast session is
- * persisted here so a production keeps an authoritative catalogue.
- */
-
 export const projects = pgTable("projects", {
-  id: text("id").primaryKey(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  logline: text("logline").notNull().default(""),
-  width: integer("width").notNull().default(1920),
-  height: integer("height").notNull().default(1080),
-  fps: doublePrecision("fps").notNull().default(24),
-  aspect: text("aspect").notNull().default("16:9"),
-  timeline: jsonb("timeline").$type<Record<string, unknown>>().notNull().default({}),
-  poster: text("poster"),
-  status: text("status").notNull().default("development"),
-  durationSec: doublePrecision("duration_sec").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  description: text("description").default("").notNull(),
+  aspect: text("aspect").default("16:9").notNull(),
+  fps: real("fps").default(24).notNull(),
+  width: integer("width").default(1920).notNull(),
+  height: integer("height").default(1080).notNull(),
+  lookId: text("look_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const assets = pgTable("assets", {
-  id: text("id").primaryKey(),
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "set null" }),
   name: text("name").notNull(),
-  kind: text("kind").notNull(), // video | audio | image
-  mime: text("mime").notNull().default(""),
-  source: text("source").notNull().default("import"), // camera | screen | broadcast | import | export | photo
-  durationSec: doublePrecision("duration_sec").notNull().default(0),
-  width: integer("width").notNull().default(0),
-  height: integer("height").notNull().default(0),
-  sizeBytes: doublePrecision("size_bytes").notNull().default(0),
-  thumbnail: text("thumbnail"),
-  filmstrip: jsonb("filmstrip").$type<string[]>().notNull().default([]),
-  peaks: jsonb("peaks").$type<number[]>().notNull().default([]),
-  slate: jsonb("slate").$type<Record<string, string>>().notNull().default({}),
-  tags: jsonb("tags").$type<string[]>().notNull().default([]),
-  analysis: jsonb("analysis").$type<Record<string, unknown>>().notNull().default({}),
-  captions: jsonb("captions").$type<{ start: number; end: number; text: string }[]>().notNull().default([]),
-  rating: integer("rating").notNull().default(0),
-  favorite: boolean("favorite").notNull().default(false),
-  projectId: text("project_id"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  kind: text("kind").notNull(), // video | image | audio
+  mime: text("mime").notNull(),
+  size: bigint("size", { mode: "number" }).default(0).notNull(),
+  durationMs: integer("duration_ms").default(0).notNull(),
+  width: integer("width").default(0).notNull(),
+  height: integer("height").default(0).notNull(),
+  fps: real("fps").default(0).notNull(),
+  filePath: text("file_path"),
+  thumbPath: text("thumb_path"),
+  lookId: text("look_id"),
+  tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+  favorite: boolean("favorite").default(false).notNull(),
+  source: text("source").default("studio").notNull(), // studio | import | export | still
+  status: text("status").default("pending").notNull(), // pending | ready
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const streamDestinations = pgTable("stream_destinations", {
-  id: text("id").primaryKey(),
+export const timelines = pgTable("timelines", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  platform: text("platform").notNull().default("custom"),
-  whipUrl: text("whip_url").notNull(),
-  streamKey: text("stream_key").notNull().default(""),
-  enabled: boolean("enabled").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}).notNull(),
+  durationMs: integer("duration_ms").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const streamSessions = pgTable("stream_sessions", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull().default("Untitled broadcast"),
-  destinationIds: jsonb("destination_ids").$type<string[]>().notNull().default([]),
-  status: text("status").notNull().default("live"), // live | ended | failed | rehearsal
-  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-  endedAt: timestamp("ended_at", { withTimezone: true }),
-  durationSec: doublePrecision("duration_sec").notNull().default(0),
-  peakKbps: doublePrecision("peak_kbps").notNull().default(0),
-  avgFps: doublePrecision("avg_fps").notNull().default(0),
-  resolution: text("resolution").notNull().default(""),
-  notes: text("notes").notNull().default(""),
+export const looks = pgTable("looks", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").default("Custom").notNull(),
+  description: text("description").default("").notNull(),
+  grade: jsonb("grade").$type<Record<string, number>>().default({}).notNull(),
+  cubeText: text("cube_text"),
+  lutSize: integer("lut_size").default(0).notNull(),
+  swatch: jsonb("swatch").$type<string[]>().default([]).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const shotlists = pgTable("shotlists", {
-  id: text("id").primaryKey(),
+export const broadcasts = pgTable("broadcasts", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  logline: text("logline").notNull(),
-  genre: text("genre").notNull().default("drama"),
-  tone: text("tone").notNull().default(""),
-  engine: text("engine").notNull().default("lumiere-local"),
-  data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  protocol: text("protocol").default("whip").notNull(),
+  endpoint: text("endpoint").default("").notNull(),
+  status: text("status").default("live").notNull(), // live | ended | failed
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  stats: jsonb("stats").$type<Record<string, unknown>>().default({}).notNull(),
+  settings: jsonb("settings").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export type ProjectRow = typeof projects.$inferSelect;
-export type AssetRow = typeof assets.$inferSelect;
-export type StreamDestinationRow = typeof streamDestinations.$inferSelect;
-export type StreamSessionRow = typeof streamSessions.$inferSelect;
-export type ShotlistRow = typeof shotlists.$inferSelect;
+export const aiSessions = pgTable("ai_sessions", {
+  id: serial("id").primaryKey(),
+  kind: text("kind").notNull(), // analysis | director | autoedit | match
+  title: text("title").default("").notNull(),
+  input: jsonb("input").$type<Record<string, unknown>>().default({}).notNull(),
+  output: jsonb("output").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").default("default").notNull().unique(),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type Project = typeof projects.$inferSelect;
+export type Asset = typeof assets.$inferSelect;
+export type Timeline = typeof timelines.$inferSelect;
+export type LookRow = typeof looks.$inferSelect;
+export type Broadcast = typeof broadcasts.$inferSelect;
+export type AiSession = typeof aiSessions.$inferSelect;

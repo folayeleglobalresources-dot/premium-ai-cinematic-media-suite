@@ -1,44 +1,65 @@
 import { db } from "@/db";
 import { assets } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { toAssetDTO } from "@/lib/server/dto";
+import { THUMB_DIR, dataUrlToBuffer, ensureDirs } from "@/lib/server/storage";
+import { desc, eq, and, type SQL } from "drizzle-orm";
+import { writeFile } from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const kind = new URL(req.url).searchParams.get("kind");
-  const rows = kind
-    ? await db.select().from(assets).where(eq(assets.kind, kind)).orderBy(desc(assets.createdAt))
-    : await db.select().from(assets).orderBy(desc(assets.createdAt));
-  return Response.json({ assets: rows });
+  const url = new URL(req.url);
+  const kind = url.searchParams.get("kind");
+  const projectId = url.searchParams.get("projectId");
+  const conds: SQL[] = [];
+  if (kind) conds.push(eq(assets.kind, kind));
+  if (projectId) conds.push(eq(assets.projectId, Number(projectId)));
+  const rows = await db
+    .select()
+    .from(assets)
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(assets.createdAt));
+  return Response.json(rows.map(toAssetDTO));
 }
 
 export async function POST(req: Request) {
-  const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!b || typeof b.id !== "string" || typeof b.name !== "string") {
-    return Response.json({ error: "id and name are required" }, { status: 400 });
+  try {
+    const body = await req.json();
+    ensureDirs();
+    const [row] = await db
+      .insert(assets)
+      .values({
+        name: String(body.name ?? "Untitled").slice(0, 200),
+        kind: ["video", "image", "audio"].includes(body.kind) ? body.kind : "video",
+        mime: String(body.mime ?? "application/octet-stream"),
+        size: Number(body.size ?? 0),
+        durationMs: Math.round(Number(body.durationMs ?? 0)),
+        width: Math.round(Number(body.width ?? 0)),
+        height: Math.round(Number(body.height ?? 0)),
+        fps: Number(body.fps ?? 0),
+        lookId: body.lookId ?? null,
+        source: String(body.source ?? "studio"),
+        metadata: body.metadata ?? {},
+        projectId: body.projectId ? Number(body.projectId) : null,
+        tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
+        status: "pending",
+      })
+      .returning();
+    let thumbPath: string | null = null;
+    if (typeof body.thumbDataUrl === "string") {
+      const parsed = dataUrlToBuffer(body.thumbDataUrl);
+      if (parsed) {
+        thumbPath = path.join(THUMB_DIR, `${row.id}.jpg`);
+        await writeFile(thumbPath, parsed.buffer);
+      }
+    }
+    if (thumbPath) {
+      const [updated] = await db.update(assets).set({ thumbPath }).where(eq(assets.id, row.id)).returning();
+      return Response.json(toAssetDTO(updated), { status: 201 });
+    }
+    return Response.json(toAssetDTO(row), { status: 201 });
+  } catch (e) {
+    return Response.json({ error: e instanceof Error ? e.message : "Failed to create asset" }, { status: 400 });
   }
-  const num = (v: unknown, d = 0) => (typeof v === "number" && Number.isFinite(v) ? v : d);
-  const values: typeof assets.$inferInsert = {
-    id: b.id,
-    name: b.name.slice(0, 200),
-    kind: ["video", "audio", "image"].includes(String(b.kind)) ? String(b.kind) : "video",
-    mime: String(b.mime ?? "").slice(0, 120),
-    source: String(b.source ?? "import").slice(0, 40),
-    durationSec: num(b.durationSec),
-    width: Math.round(num(b.width)),
-    height: Math.round(num(b.height)),
-    sizeBytes: num(b.sizeBytes),
-    thumbnail: typeof b.thumbnail === "string" ? b.thumbnail : null,
-    filmstrip: Array.isArray(b.filmstrip) ? (b.filmstrip as string[]).slice(0, 12) : [],
-    peaks: Array.isArray(b.peaks) ? (b.peaks as number[]).slice(0, 2000) : [],
-    slate: (b.slate as Record<string, string>) ?? {},
-    tags: Array.isArray(b.tags) ? (b.tags as string[]).slice(0, 30) : [],
-    analysis: (b.analysis as Record<string, unknown>) ?? {},
-    captions: Array.isArray(b.captions) ? (b.captions as { start: number; end: number; text: string }[]).slice(0, 5000) : [],
-    rating: Math.round(num(b.rating)),
-    favorite: Boolean(b.favorite),
-    projectId: typeof b.projectId === "string" ? b.projectId : null,
-  };
-  const [row] = await db.insert(assets).values(values).onConflictDoUpdate({ target: assets.id, set: values }).returning();
-  return Response.json({ asset: row }, { status: 201 });
 }

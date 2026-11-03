@@ -1,466 +1,294 @@
-import { uid } from "./utils";
-
-/* ───────────────────────── Color science ───────────────────────── */
-
-export interface Wheel {
-  /** puck position in the unit disk (x → hue direction, y) */
-  x: number;
-  y: number;
-  /** master ring (luminance) */
-  m: number;
-}
-
-export interface Grade {
-  exposure: number; // stops  -4..4
-  contrast: number; // 0.4..2
-  pivot: number; // 0.2..0.7
-  saturation: number; // 0..2
-  vibrance: number; // -1..1
-  temperature: number; // -1..1
-  tint: number; // -1..1
+export type Grade = {
+  exposure: number; // -3..3 stops
+  contrast: number; // -1..1
   highlights: number; // -1..1
   shadows: number; // -1..1
-  hue: number; // -180..180
-  lift: Wheel;
-  gamma: Wheel;
-  gain: Wheel;
-  // ASC CDL (Slope / Offset / Power) — industry interchange standard
-  slope: [number, number, number];
-  offset: [number, number, number];
-  power: [number, number, number];
-  splitShadowHue: number;
-  splitShadowAmt: number;
-  splitHighHue: number;
-  splitHighAmt: number;
-  fade: number; // 0..1 matte blacks
+  whites: number; // -1..1
+  blacks: number; // -1..1
+  saturation: number; // -1..1
+  vibrance: number; // -1..1
+  temperature: number; // -1 (cool) .. 1 (warm)
+  tint: number; // -1 (green) .. 1 (magenta)
+  hue: number; // -180..180 degrees
+  fade: number; // 0..1 lifted blacks
   vignette: number; // 0..1
+  vignetteSoft: number; // 0..1
   grain: number; // 0..1
   sharpen: number; // 0..1
-  halation: number; // 0..1
-  bloom: number; // 0..1
-  chromatic: number; // 0..1
-  mono: boolean;
-  look: string | null;
-  lookAmount: number; // 0..1
-}
+  bloom: number; // 0..1 (halation / diffusion)
+  filmic: number; // 0..1 filmic tone curve blend
+  bleach: number; // 0..1 bleach bypass
+  shadowTintHue: number; // 0..360
+  shadowTintSat: number; // 0..1
+  highlightTintHue: number; // 0..360
+  highlightTintSat: number; // 0..1
+  lutIntensity: number; // 0..1
+};
 
-export const neutralWheel = (): Wheel => ({ x: 0, y: 0, m: 0 });
+export const DEFAULT_GRADE: Grade = {
+  exposure: 0,
+  contrast: 0,
+  highlights: 0,
+  shadows: 0,
+  whites: 0,
+  blacks: 0,
+  saturation: 0,
+  vibrance: 0,
+  temperature: 0,
+  tint: 0,
+  hue: 0,
+  fade: 0,
+  vignette: 0,
+  vignetteSoft: 0.5,
+  grain: 0,
+  sharpen: 0,
+  bloom: 0,
+  filmic: 0,
+  bleach: 0,
+  shadowTintHue: 210,
+  shadowTintSat: 0,
+  highlightTintHue: 40,
+  highlightTintSat: 0,
+  lutIntensity: 1,
+};
 
-export function defaultGrade(): Grade {
-  return {
-    exposure: 0,
-    contrast: 1,
-    pivot: 0.45,
-    saturation: 1,
-    vibrance: 0,
-    temperature: 0,
-    tint: 0,
-    highlights: 0,
-    shadows: 0,
-    hue: 0,
-    lift: neutralWheel(),
-    gamma: neutralWheel(),
-    gain: neutralWheel(),
-    slope: [1, 1, 1],
-    offset: [0, 0, 0],
-    power: [1, 1, 1],
-    splitShadowHue: 200,
-    splitShadowAmt: 0,
-    splitHighHue: 35,
-    splitHighAmt: 0,
-    fade: 0,
-    vignette: 0,
-    grain: 0,
-    sharpen: 0,
-    halation: 0,
-    bloom: 0,
-    chromatic: 0,
-    mono: false,
-    look: null,
-    lookAmount: 1,
-  };
-}
+export const GRADE_KEYS = Object.keys(DEFAULT_GRADE) as (keyof Grade)[];
 
-/* ───────────────────────── Timeline ───────────────────────── */
+export type GradeControl = {
+  key: keyof Grade;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  group: "Light" | "Color" | "Texture" | "Film" | "Tone";
+};
 
-export type TrackKind = "video" | "audio" | "text";
+export const GRADE_CONTROLS: GradeControl[] = [
+  { key: "exposure", label: "Exposure", min: -3, max: 3, step: 0.01, group: "Light" },
+  { key: "contrast", label: "Contrast", min: -1, max: 1, step: 0.01, group: "Light" },
+  { key: "highlights", label: "Highlights", min: -1, max: 1, step: 0.01, group: "Light" },
+  { key: "shadows", label: "Shadows", min: -1, max: 1, step: 0.01, group: "Light" },
+  { key: "whites", label: "Whites", min: -1, max: 1, step: 0.01, group: "Light" },
+  { key: "blacks", label: "Blacks", min: -1, max: 1, step: 0.01, group: "Light" },
+  { key: "temperature", label: "Temperature", min: -1, max: 1, step: 0.01, group: "Color" },
+  { key: "tint", label: "Tint", min: -1, max: 1, step: 0.01, group: "Color" },
+  { key: "saturation", label: "Saturation", min: -1, max: 1, step: 0.01, group: "Color" },
+  { key: "vibrance", label: "Vibrance", min: -1, max: 1, step: 0.01, group: "Color" },
+  { key: "hue", label: "Hue Rotate", min: -180, max: 180, step: 1, group: "Color" },
+  { key: "shadowTintHue", label: "Shadow Tone Hue", min: 0, max: 360, step: 1, group: "Tone" },
+  { key: "shadowTintSat", label: "Shadow Tone Amount", min: 0, max: 1, step: 0.01, group: "Tone" },
+  { key: "highlightTintHue", label: "Highlight Tone Hue", min: 0, max: 360, step: 1, group: "Tone" },
+  { key: "highlightTintSat", label: "Highlight Tone Amount", min: 0, max: 1, step: 0.01, group: "Tone" },
+  { key: "filmic", label: "Filmic Curve", min: 0, max: 1, step: 0.01, group: "Film" },
+  { key: "fade", label: "Fade", min: 0, max: 1, step: 0.01, group: "Film" },
+  { key: "bleach", label: "Bleach Bypass", min: 0, max: 1, step: 0.01, group: "Film" },
+  { key: "bloom", label: "Halation", min: 0, max: 1, step: 0.01, group: "Film" },
+  { key: "grain", label: "Film Grain", min: 0, max: 1, step: 0.01, group: "Texture" },
+  { key: "sharpen", label: "Sharpen", min: 0, max: 1, step: 0.01, group: "Texture" },
+  { key: "vignette", label: "Vignette", min: 0, max: 1, step: 0.01, group: "Texture" },
+  { key: "vignetteSoft", label: "Vignette Feather", min: 0, max: 1, step: 0.01, group: "Texture" },
+];
 
-export interface Track {
+export type Look = {
   id: string;
-  kind: TrackKind;
   name: string;
-  muted: boolean;
-  locked: boolean;
-  hidden: boolean;
-  solo: boolean;
-  volume: number;
+  category: string;
+  description: string;
+  grade: Partial<Grade>;
+  swatch: [string, string, string];
+  cubeText?: string | null;
+};
+
+export function mergeGrade(base: Grade, partial?: Partial<Grade> | null): Grade {
+  if (!partial) return { ...base };
+  const out: Grade = { ...base };
+  for (const k of GRADE_KEYS) {
+    const v = partial[k];
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+  }
+  return out;
 }
 
-export type TransitionType =
-  | "dissolve"
-  | "dip-black"
-  | "dip-white"
-  | "wipe-left"
-  | "wipe-right"
-  | "slide-up"
-  | "zoom"
-  | "blur"
-  | "iris"
-  | "flash"
-  | "glitch";
-
-export interface Transition {
-  type: TransitionType;
-  duration: number;
+export function lerpGrade(a: Grade, b: Grade, t: number): Grade {
+  const out: Grade = { ...a };
+  for (const k of GRADE_KEYS) out[k] = a[k] + (b[k] - a[k]) * t;
+  return out;
 }
 
-export type MotionPreset =
-  | "none"
-  | "kenburns-in"
-  | "kenburns-out"
-  | "pan-left"
-  | "pan-right"
-  | "drift-up"
-  | "handheld"
-  | "punch-in";
+export function addGrade(a: Grade, b: Partial<Grade>): Grade {
+  const out: Grade = { ...a };
+  for (const k of GRADE_KEYS) {
+    const v = b[k];
+    if (typeof v !== "number") continue;
+    if (k === "lutIntensity" || k === "vignetteSoft" || k.endsWith("Hue")) out[k] = v;
+    else out[k] = a[k] + v;
+  }
+  return out;
+}
 
-export type TitlePreset =
-  | "cinematic"
-  | "epic"
-  | "lower-third"
-  | "chapter"
-  | "credits"
-  | "subtitle"
-  | "neon"
-  | "minimal"
-  | "documentary"
-  | "kinetic";
+export type MonitorOptions = {
+  zebra: boolean;
+  zebraLevel: number; // 0..1
+  falseColor: boolean;
+  peaking: boolean;
+  peakLevel: number; // 0..1
+  digitalGain: number; // stops (digital ISO)
+};
 
-export type TitleAnimation = "fade" | "rise" | "tracking" | "typewriter" | "zoom" | "blur" | "wipe" | "none";
+export const DEFAULT_MONITOR: MonitorOptions = {
+  zebra: false,
+  zebraLevel: 0.95,
+  falseColor: false,
+  peaking: false,
+  peakLevel: 0.25,
+  digitalGain: 0,
+};
 
-export interface TitleSpec {
+export type TransitionType = "none" | "dissolve" | "dipBlack" | "dipWhite" | "wipe" | "slide";
+export type MotionPreset = "none" | "zoomIn" | "zoomOut" | "panLeft" | "panRight" | "drift";
+
+export type TitleStyle = {
   text: string;
   subtitle: string;
-  preset: TitlePreset;
-  font: string;
-  size: number; // relative to frame height (0.02..0.3)
+  font: "serif" | "sans" | "mono";
+  size: number; // relative 1..10
   color: string;
-  accent: string;
   align: "left" | "center" | "right";
-  x: number; // 0..1
-  y: number; // 0..1
-  animation: TitleAnimation;
-  tracking: number; // letter spacing in em
-  weight: number;
-  italic: boolean;
-  shadow: boolean;
-  box: boolean;
-  uppercase: boolean;
-}
+  position: "upper" | "center" | "lower";
+  animation: "none" | "fade" | "rise" | "tracking" | "typewriter";
+  background: "none" | "bar" | "box" | "gradient";
+};
 
-export type ClipKind = "video" | "audio" | "image" | "title" | "solid";
-
-export interface ClipTransform {
-  x: number; // offset as fraction of frame width
-  y: number;
-  scale: number;
-  rotation: number; // degrees
-  fit: "contain" | "cover" | "fill";
-  flipH: boolean;
-  cropTop: number;
-  cropBottom: number;
-}
-
-export interface Clip {
+export type Clip = {
   id: string;
-  trackId: string;
-  kind: ClipKind;
-  assetId?: string;
+  assetId: number | null;
+  kind: "video" | "image" | "audio" | "title";
   name: string;
-  start: number;
-  duration: number;
-  sourceIn: number;
+  track: number; // 0 = V1, 1 = V2 (overlay), 2 = A1
+  start: number; // seconds on timeline
+  inPoint: number; // seconds into source
+  duration: number; // seconds on timeline
+  sourceDuration: number; // seconds, 0 if unknown
   speed: number;
   volume: number;
   muted: boolean;
   fadeIn: number;
   fadeOut: number;
   opacity: number;
-  blend: GlobalCompositeOperation;
-  transform: ClipTransform;
-  motion: MotionPreset;
+  transitionIn: { type: TransitionType; duration: number };
   grade: Grade;
-  transitionIn: Transition | null;
-  title?: TitleSpec;
-  color?: string;
-  reframe?: { x: number; y: number } | null;
-  label?: string;
-}
+  lookId: string | null;
+  motion: MotionPreset;
+  scale: number;
+  x: number;
+  y: number;
+  rotation: number;
+  title?: TitleStyle;
+  width?: number;
+  height?: number;
+};
 
-export interface Marker {
-  id: string;
-  time: number;
-  label: string;
-  color: string;
-}
-
-export interface Caption {
-  id: string;
-  start: number;
-  end: number;
-  text: string;
-}
-
-export interface Finishing {
-  letterbox: number | null; // target aspect, e.g. 2.39
-  grain: number;
-  vignette: number;
-  captionsVisible: boolean;
-  captionStyle: "cinema" | "social" | "broadcast";
-  background: string;
-}
-
-export interface Timeline {
-  tracks: Track[];
-  clips: Clip[];
-  markers: Marker[];
-  captions: Caption[];
-  finishing: Finishing;
-}
-
-export interface ProjectSettings {
-  width: number;
-  height: number;
+export type TimelineData = {
+  version: 1;
   fps: number;
-  aspect: string;
-}
-
-export interface ProjectDoc extends ProjectSettings {
-  id: string;
-  name: string;
-  logline: string;
-  timeline: Timeline;
-  poster: string | null;
-  status: string;
-  durationSec: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AssetMeta {
-  id: string;
-  name: string;
-  kind: "video" | "audio" | "image";
-  mime: string;
-  source: string;
-  durationSec: number;
   width: number;
   height: number;
-  sizeBytes: number;
-  thumbnail: string | null;
-  filmstrip: string[];
-  peaks: number[];
-  slate: Record<string, string>;
-  tags: string[];
-  analysis: Record<string, unknown>;
-  captions: { start: number; end: number; text: string }[];
-  rating: number;
-  favorite: boolean;
-  projectId: string | null;
-  createdAt: string;
-}
+  clips: Clip[];
+  masterVolume: number;
+  masterGrade: Grade;
+  masterLookId: string | null;
+  letterbox: "none" | "2.39" | "1.85" | "4:3";
+};
 
-export function defaultTitle(preset: TitlePreset = "cinematic", text = "LUMIÈRE"): TitleSpec {
-  const base: TitleSpec = {
-    text,
-    subtitle: "",
-    preset,
-    font: "Cormorant Garamond",
-    size: 0.11,
-    color: "#F4ECDD",
-    accent: "#D8B57A",
-    align: "center",
-    x: 0.5,
-    y: 0.5,
-    animation: "tracking",
-    tracking: 0.32,
-    weight: 500,
-    italic: false,
-    shadow: true,
-    box: false,
-    uppercase: true,
-  };
-  switch (preset) {
-    case "epic":
-      return { ...base, font: "Cinzel", size: 0.13, tracking: 0.42, animation: "zoom", weight: 600 };
-    case "lower-third":
-      return { ...base, font: "Manrope", size: 0.045, align: "left", x: 0.08, y: 0.8, animation: "wipe", tracking: 0.08, uppercase: false, weight: 700, box: true, subtitle: "Director of Photography" };
-    case "chapter":
-      return { ...base, font: "Cormorant Garamond", size: 0.085, italic: true, uppercase: false, tracking: 0.04, animation: "blur", subtitle: "CHAPTER ONE" };
-    case "credits":
-      return { ...base, font: "Manrope", size: 0.04, tracking: 0.28, animation: "rise", weight: 600, subtitle: "Directed by" };
-    case "subtitle":
-      return { ...base, font: "Manrope", size: 0.042, y: 0.86, tracking: 0, uppercase: false, animation: "fade", weight: 600, box: false };
-    case "neon":
-      return { ...base, font: "Monoton", size: 0.1, color: "#FF4FD8", accent: "#36E8FF", tracking: 0.12, animation: "fade", weight: 400 };
-    case "minimal":
-      return { ...base, font: "Manrope", size: 0.05, tracking: 0.55, weight: 300, animation: "fade", shadow: false };
-    case "documentary":
-      return { ...base, font: "JetBrains Mono", size: 0.035, align: "left", x: 0.08, y: 0.12, tracking: 0.1, animation: "typewriter", uppercase: true, weight: 500, subtitle: "LOCATION · 05:42 AM" };
-    case "kinetic":
-      return { ...base, font: "Bebas Neue", size: 0.16, tracking: 0.06, animation: "rise", weight: 400, color: "#FFFFFF", accent: "#E8C27A" };
-    default:
-      return base;
-  }
-}
-
-export function defaultTransform(): ClipTransform {
-  return { x: 0, y: 0, scale: 1, rotation: 0, fit: "contain", flipH: false, cropTop: 0, cropBottom: 0 };
-}
-
-export function makeClip(partial: Partial<Clip> & Pick<Clip, "trackId" | "kind" | "name" | "start" | "duration">): Clip {
+export function emptyTimeline(width = 1920, height = 1080, fps = 24): TimelineData {
   return {
-    id: uid("clip"),
-    sourceIn: 0,
-    speed: 1,
-    volume: 1,
-    muted: false,
-    fadeIn: 0,
-    fadeOut: 0,
-    opacity: 1,
-    blend: "source-over",
-    transform: defaultTransform(),
-    motion: "none",
-    grade: defaultGrade(),
-    transitionIn: null,
-    reframe: null,
-    ...partial,
-  };
-}
-
-export function defaultTimeline(): Timeline {
-  return {
-    tracks: [
-      { id: "V3", kind: "text", name: "Titles", muted: false, locked: false, hidden: false, solo: false, volume: 1 },
-      { id: "V2", kind: "video", name: "V2 · Overlay", muted: false, locked: false, hidden: false, solo: false, volume: 1 },
-      { id: "V1", kind: "video", name: "V1 · Picture", muted: false, locked: false, hidden: false, solo: false, volume: 1 },
-      { id: "A1", kind: "audio", name: "A1 · Dialogue", muted: false, locked: false, hidden: false, solo: false, volume: 1 },
-      { id: "A2", kind: "audio", name: "A2 · Score", muted: false, locked: false, hidden: false, solo: false, volume: 0.8 },
-    ],
+    version: 1,
+    fps,
+    width,
+    height,
     clips: [],
-    markers: [],
-    captions: [],
-    finishing: {
-      letterbox: null,
-      grain: 0,
-      vignette: 0,
-      captionsVisible: true,
-      captionStyle: "cinema",
-      background: "#000000",
-    },
+    masterVolume: 1,
+    masterGrade: { ...DEFAULT_GRADE },
+    masterLookId: null,
+    letterbox: "none",
   };
 }
 
-export function normalizeTimeline(raw: unknown): Timeline {
-  const base = defaultTimeline();
-  if (!raw || typeof raw !== "object") return base;
-  const t = raw as Partial<Timeline>;
-  return {
-    tracks: Array.isArray(t.tracks) && t.tracks.length ? t.tracks : base.tracks,
-    clips: Array.isArray(t.clips)
-      ? t.clips.map((c) => ({ ...makeClip(c), ...c, grade: { ...defaultGrade(), ...(c.grade ?? {}) }, transform: { ...defaultTransform(), ...(c.transform ?? {}) } }))
-      : [],
-    markers: Array.isArray(t.markers) ? t.markers : [],
-    captions: Array.isArray(t.captions) ? t.captions : [],
-    finishing: { ...base.finishing, ...(t.finishing ?? {}) },
-  };
+export function newClipId() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 
-export function timelineDuration(t: Timeline): number {
+export function timelineDuration(t: TimelineData) {
   return t.clips.reduce((m, c) => Math.max(m, c.start + c.duration), 0);
 }
 
-/* ───────────────────────── Formats ───────────────────────── */
-
-export interface FormatPreset {
-  id: string;
-  label: string;
-  group: string;
+export type AssetDTO = {
+  id: number;
+  projectId: number | null;
+  name: string;
+  kind: "video" | "image" | "audio";
+  mime: string;
+  size: number;
+  durationMs: number;
   width: number;
   height: number;
   fps: number;
-  aspect: string;
-  note: string;
-}
+  lookId: string | null;
+  tags: string[];
+  favorite: boolean;
+  source: string;
+  status: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  hasThumb: boolean;
+};
 
-export const FORMAT_PRESETS: FormatPreset[] = [
-  { id: "dci4k", label: "DCI 4K Cinema", group: "Cinema", width: 4096, height: 2160, fps: 24, aspect: "1.90:1", note: "Digital Cinema Initiatives · theatrical" },
-  { id: "uhd", label: "UHD 4K", group: "Cinema", width: 3840, height: 2160, fps: 24, aspect: "16:9", note: "Streaming masters · Netflix / Prime" },
-  { id: "scope", label: "Anamorphic Scope", group: "Cinema", width: 1920, height: 804, fps: 24, aspect: "2.39:1", note: "Widescreen epic · Panavision" },
-  { id: "flat", label: "Flat 1.85", group: "Cinema", width: 1998, height: 1080, fps: 24, aspect: "1.85:1", note: "Theatrical flat" },
-  { id: "imax", label: "IMAX 1.43", group: "Cinema", width: 1544, height: 1080, fps: 24, aspect: "1.43:1", note: "Large-format immersive" },
-  { id: "hd", label: "Full HD", group: "Broadcast", width: 1920, height: 1080, fps: 25, aspect: "16:9", note: "Broadcast / YouTube" },
-  { id: "hd60", label: "Full HD 60", group: "Broadcast", width: 1920, height: 1080, fps: 60, aspect: "16:9", note: "Sports · gaming · motion" },
-  { id: "hd720", label: "HD 720p", group: "Broadcast", width: 1280, height: 720, fps: 30, aspect: "16:9", note: "Lightweight delivery" },
-  { id: "vertical", label: "Vertical 9:16", group: "Social", width: 1080, height: 1920, fps: 30, aspect: "9:16", note: "TikTok · Reels · Shorts" },
-  { id: "portrait", label: "Portrait 4:5", group: "Social", width: 1080, height: 1350, fps: 30, aspect: "4:5", note: "Instagram feed" },
-  { id: "square", label: "Square 1:1", group: "Social", width: 1080, height: 1080, fps: 30, aspect: "1:1", note: "Feeds & carousels" },
-  { id: "academy", label: "Academy 4:3", group: "Vintage", width: 1440, height: 1080, fps: 24, aspect: "4:3", note: "Classic & archival" },
-];
+export type AppSettings = {
+  resolution: "720p" | "1080p" | "1440p" | "4k" | "8k";
+  fps: number;
+  codec: string;
+  bitrateMbps: number;
+  recordMode: "look" | "clean";
+  frameGuide: string;
+  grid: "none" | "thirds" | "golden" | "center";
+  zebra: boolean;
+  zebraLevel: number;
+  peaking: boolean;
+  falseColor: boolean;
+  scopes: boolean;
+  timecodeMode: "record" | "clock";
+  accent: "gold" | "platinum" | "rose";
+  whipEndpoint: string;
+  whipToken: string;
+  defaultLook: string;
+  autoSave: boolean;
+  mirrorPreview: boolean;
+  projectFps: number;
+  projectResolution: "1080p" | "4k";
+  reduceMotion: boolean;
+};
 
-export const LETTERBOX_RATIOS = [
-  { label: "Off", value: null },
-  { label: "1.85", value: 1.85 },
-  { label: "2.00", value: 2.0 },
-  { label: "2.39", value: 2.39 },
-  { label: "2.76", value: 2.76 },
-] as const;
-
-export const TRANSITIONS: { id: TransitionType; label: string }[] = [
-  { id: "dissolve", label: "Cross Dissolve" },
-  { id: "dip-black", label: "Dip to Black" },
-  { id: "dip-white", label: "Dip to White" },
-  { id: "wipe-left", label: "Wipe Left" },
-  { id: "wipe-right", label: "Wipe Right" },
-  { id: "slide-up", label: "Slide Up" },
-  { id: "zoom", label: "Zoom Through" },
-  { id: "blur", label: "Blur Dissolve" },
-  { id: "iris", label: "Iris" },
-  { id: "flash", label: "Flash Frame" },
-  { id: "glitch", label: "Digital Glitch" },
-];
-
-export const MOTIONS: { id: MotionPreset; label: string }[] = [
-  { id: "none", label: "Locked-off" },
-  { id: "kenburns-in", label: "Ken Burns In" },
-  { id: "kenburns-out", label: "Ken Burns Out" },
-  { id: "pan-left", label: "Pan Left" },
-  { id: "pan-right", label: "Pan Right" },
-  { id: "drift-up", label: "Crane Up" },
-  { id: "handheld", label: "Handheld" },
-  { id: "punch-in", label: "Punch-in" },
-];
-
-export const TITLE_PRESETS: { id: TitlePreset; label: string; hint: string }[] = [
-  { id: "cinematic", label: "Cinematic", hint: "Tracked serif · opening title" },
-  { id: "epic", label: "Epic", hint: "Roman capitals · trailer" },
-  { id: "chapter", label: "Chapter", hint: "Italic serif · act break" },
-  { id: "lower-third", label: "Lower Third", hint: "Name & role · interviews" },
-  { id: "credits", label: "Credits", hint: "Role / name pairing" },
-  { id: "documentary", label: "Documentary", hint: "Typewriter slug line" },
-  { id: "kinetic", label: "Kinetic", hint: "Bold condensed · promos" },
-  { id: "neon", label: "Neon", hint: "Retro glow · music video" },
-  { id: "minimal", label: "Minimal", hint: "Ultra-light spaced" },
-  { id: "subtitle", label: "Subtitle", hint: "Dialogue caption" },
-];
-
-export const TITLE_FONTS = [
-  "Cormorant Garamond",
-  "Cinzel",
-  "Playfair Display",
-  "Manrope",
-  "Bebas Neue",
-  "JetBrains Mono",
-  "Monoton",
-  "Italiana",
-];
+export const DEFAULT_SETTINGS: AppSettings = {
+  resolution: "1080p",
+  fps: 30,
+  codec: "auto",
+  bitrateMbps: 25,
+  recordMode: "look",
+  frameGuide: "none",
+  grid: "none",
+  zebra: false,
+  zebraLevel: 0.95,
+  peaking: false,
+  falseColor: false,
+  scopes: true,
+  timecodeMode: "record",
+  accent: "gold",
+  whipEndpoint: "",
+  whipToken: "",
+  defaultLook: "natural",
+  autoSave: true,
+  mirrorPreview: false,
+  projectFps: 24,
+  projectResolution: "1080p",
+  reduceMotion: false,
+};
