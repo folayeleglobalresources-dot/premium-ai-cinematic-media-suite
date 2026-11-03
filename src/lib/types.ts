@@ -23,6 +23,7 @@ export type Grade = {
   highlightTintHue: number; // 0..360
   highlightTintSat: number; // 0..1
   lutIntensity: number; // 0..1
+  look?: string | null; // selected creative look preset, stored alongside numeric grade controls
 };
 
 export const DEFAULT_GRADE: Grade = {
