@@ -825,7 +825,11 @@ export function Editor({ timelineId }: { timelineId: number }) {
                               const src = computeStats(d, 192, 108);
                               const { grade, summary } = matchGrade(src, refStats);
                               const g = { ...selected.grade };
-                              for (const [k, v] of Object.entries(grade)) if (typeof v === "number") g[k as keyof Grade] = g[k as keyof Grade] + v;
+                              for (const [key, value] of Object.entries(grade)) {
+                                if (typeof value !== "number" || !(key in DEFAULT_GRADE)) continue;
+                                const k = key as NumericGradeKey;
+                                g[k] = g[k] + value;
+                              }
                               updateClip(selected.id, { grade: g });
                               toast(summary[0]);
                             }}
