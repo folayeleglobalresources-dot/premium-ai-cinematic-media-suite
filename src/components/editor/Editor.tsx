@@ -980,12 +980,20 @@ export function Editor({ timelineId }: { timelineId: number }) {
                       onApplyGrade={(g) => {
                         if (selected && selected.kind !== "title" && selected.kind !== "audio") {
                           const ng = { ...selected.grade };
-                          for (const [k, v] of Object.entries(g)) if (typeof v === "number") ng[k as keyof Grade] = ng[k as keyof Grade] + v;
+                          for (const [key, value] of Object.entries(g)) {
+                            if (typeof value !== "number" || !(key in DEFAULT_GRADE)) continue;
+                            const k = key as NumericGradeKey;
+                            ng[k] = ng[k] + value;
+                          }
                           updateClip(selected.id, { grade: ng });
                           toast("Correction applied to the selected clip");
                         } else {
                           const mg = { ...tl.masterGrade };
-                          for (const [k, v] of Object.entries(g)) if (typeof v === "number") mg[k as keyof Grade] = mg[k as keyof Grade] + v;
+                          for (const [key, value] of Object.entries(g)) {
+                            if (typeof value !== "number" || !(key in DEFAULT_GRADE)) continue;
+                            const k = key as NumericGradeKey;
+                            mg[k] = mg[k] + value;
+                          }
                           commit({ ...tl, masterGrade: mg });
                           toast("Correction applied to the master");
                         }
