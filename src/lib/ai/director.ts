@@ -308,7 +308,7 @@ export function localDirector(input: string, ctx: DirectorContext): DirectorRepl
     }
 
     // Motion
-    const motion: MotionPreset | null = /\b(ken burns|slow zoom|zoom in slowly|push.?in|dolly in|creep in)\b/.test(s) ? "kenburns-in" : /\b(zoom out|pull out|pull back|dolly out)\b/.test(s) ? "kenburns-out" : /\bpan left\b/.test(s) ? "pan-left" : /\bpan right\b/.test(s) ? "pan-right" : /\b(handheld|shaky|camera shake|documentary feel)\b/.test(s) ? "handheld" : /\b(crane|rise up|drift up)\b/.test(s) ? "drift-up" : /\bpunch.?in\b/.test(s) ? "punch-in" : /\b(stabili[sz]e|lock(ed)? off|remove motion)\b/.test(s) ? "none" : null;
+    const motion: MotionPreset | null = /\b(ken burns|slow zoom|zoom in slowly|push.?in|dolly in|creep in)\b/.test(s) ? "zoomIn" : /\b(zoom out|pull out|pull back|dolly out)\b/.test(s) ? "zoomOut" : /\bpan left\b/.test(s) ? "panLeft" : /\bpan right\b/.test(s) ? "panRight" : /\b(handheld|shaky|camera shake|documentary feel)\b/.test(s) ? "drift" : /\b(crane|rise up|drift up)\b/.test(s) ? "drift" : /\bpunch.?in\b/.test(s) ? "zoomIn" : /\b(stabili[sz]e|lock(ed)? off|remove motion)\b/.test(s) ? "none" : null;
     if (motion) {
       actions.push({ type: "motion", motion, target: tgt });
       notes.push(motion === "none" ? "Locked off all virtual camera moves" : `Added a ${motion.replace("-", " ")} virtual camera move`);
