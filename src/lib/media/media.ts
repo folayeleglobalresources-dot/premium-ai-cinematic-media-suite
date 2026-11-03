@@ -1,6 +1,6 @@
 "use client";
 
-import type { AssetMeta } from "../types";
+import type { AssetDTO, AssetMeta } from "../types";
 import { jsonFetch, uid } from "../utils";
 
 const DB_NAME = "lumiere-media";
@@ -270,23 +270,48 @@ export async function ingestBlob(blob: Blob, opts: IngestOptions): Promise<Asset
     createdAt: new Date().toISOString(),
   };
   try {
-    const saved = await jsonFetch<{ asset: AssetMeta }>("/api/assets", { method: "POST", body: JSON.stringify(record) });
-    return saved.asset;
+    const saved = await jsonFetch<{ asset: AssetDTO }>("/api/assets", { method: "POST", body: JSON.stringify(record) });
+    const asset = dtoToAssetMeta(saved.asset);
+    if (asset.id !== id) {
+      await putBlob(asset.id, blob);
+      await deleteBlob(id);
+      const cached = bufferCache.get(id);
+      if (cached) bufferCache.set(asset.id, cached);
+      bufferCache.delete(id);
+    }
+    return asset;
   } catch (e) {
     console.warn("Asset registry unavailable, keeping local record", e);
     return record;
   }
 }
 
+function dtoToAssetMeta(dto: AssetDTO): AssetMeta {
+  const meta = dto.metadata ?? {};
+  const stringArray = (v: unknown): string[] => Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  const numberArray = (v: unknown): number[] => Array.isArray(v) ? v.filter((x): x is number => typeof x === "number") : [];
+  const captions = Array.isArray(meta.captions) ? meta.captions.filter((x): x is { start: number; end: number; text: string } => !!x && typeof x === "object" && typeof (x as { start?: unknown }).start === "number" && typeof (x as { end?: unknown }).end === "number" && typeof (x as { text?: unknown }).text === "string") : [];
+  return {
+    id: String(dto.id), name: dto.name, kind: dto.kind, mime: dto.mime, source: dto.source,
+    durationSec: dto.durationMs / 1000, width: dto.width, height: dto.height, sizeBytes: dto.size,
+    thumbnail: typeof meta.thumbnail === "string" ? meta.thumbnail : null,
+    filmstrip: stringArray(meta.filmstrip), peaks: numberArray(meta.peaks),
+    slate: meta.slate && typeof meta.slate === "object" ? meta.slate as Record<string, string> : {},
+    tags: dto.tags ?? [], analysis: meta.analysis && typeof meta.analysis === "object" ? meta.analysis as Record<string, unknown> : {},
+    captions, rating: typeof meta.rating === "number" ? meta.rating : 0, favorite: dto.favorite,
+    projectId: dto.projectId == null ? null : String(dto.projectId), createdAt: dto.createdAt,
+  };
+}
+
 export async function fetchAssets(): Promise<AssetMeta[]> {
-  const res = await jsonFetch<{ assets: AssetMeta[] }>("/api/assets");
-  return res.assets;
+  const res = await jsonFetch<{ assets: AssetDTO[] }>("/api/assets");
+  return res.assets.map(dtoToAssetMeta);
 }
 
 export async function updateAsset(id: string, patch: Partial<AssetMeta>): Promise<AssetMeta | null> {
   try {
-    const res = await jsonFetch<{ asset: AssetMeta }>(`/api/assets/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
-    return res.asset;
+    const res = await jsonFetch<{ asset: AssetDTO }>(`/api/assets/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+    return dtoToAssetMeta(res.asset);
   } catch {
     return null;
   }
