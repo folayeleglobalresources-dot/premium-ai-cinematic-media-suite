@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     .from(assets)
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(desc(assets.createdAt));
-  return Response.json({ assets: rows.map(toAssetDTO) });
+  return Response.json(rows.map(toAssetDTO));
 }
 
 export async function POST(req: Request) {
@@ -65,9 +65,11 @@ export async function POST(req: Request) {
     }
     if (thumbPath) {
       const [updated] = await db.update(assets).set({ thumbPath }).where(eq(assets.id, row.id)).returning();
-      return Response.json({ asset: toAssetDTO(updated) }, { status: 201 });
+      const dto = toAssetDTO(updated);
+      return Response.json({ ...dto, asset: dto }, { status: 201 });
     }
-    return Response.json({ asset: toAssetDTO(row) }, { status: 201 });
+    const dto = toAssetDTO(row);
+    return Response.json({ ...dto, asset: dto }, { status: 201 });
   } catch (e) {
     return Response.json({ error: e instanceof Error ? e.message : "Failed to create asset" }, { status: 400 });
   }
