@@ -292,3 +292,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   projectResolution: "1080p",
   reduceMotion: false,
 };
+
+
+/** Color-wheel control used by the capture UI. */
+export type Wheel = { x: number; y: number; m: number };
+
+/** Legacy factory retained for camera-engine callers. */
+export function defaultGrade(): Grade {
+  return { ...DEFAULT_GRADE };
+}
