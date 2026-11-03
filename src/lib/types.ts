@@ -53,10 +53,11 @@ export const DEFAULT_GRADE: Grade = {
   lutIntensity: 1,
 };
 
-export const GRADE_KEYS = Object.keys(DEFAULT_GRADE) as (keyof Grade)[];
+export type NumericGradeKey = Exclude<keyof Grade, "look">;
+export const GRADE_KEYS = Object.keys(DEFAULT_GRADE) as NumericGradeKey[];
 
 export type GradeControl = {
-  key: keyof Grade;
+  key: NumericGradeKey;
   label: string;
   min: number;
   max: number;
