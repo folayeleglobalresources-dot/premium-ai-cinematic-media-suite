@@ -400,7 +400,7 @@ export function QuickGrade({ grade, onChange, onStart }: { grade: Grade; onChang
       <div className="grid grid-cols-4 gap-1 pt-2">
         <Knob label="Grain" value={grade.grain} min={0} max={1} reset={0} onStart={onStart} onChange={set("grain")} size={40} />
         <Knob label="Vignette" value={grade.vignette} min={0} max={1} reset={0} onStart={onStart} onChange={set("vignette")} size={40} />
-        <Knob label="Halation" value={grade.halation} min={0} max={1} reset={0} onStart={onStart} onChange={set("halation")} size={40} />
+        <Knob label="Fade" value={grade.fade} min={0} max={1} reset={0} onStart={onStart} onChange={set("fade")} size={40} />
         <Knob label="Bloom" value={grade.bloom} min={0} max={1} reset={0} onStart={onStart} onChange={set("bloom")} size={40} />
       </div>
       <button onClick={() => onChange(defaultGrade())} className="text-[10.5px] uppercase tracking-[0.2em] text-smoke transition hover:text-gold">
