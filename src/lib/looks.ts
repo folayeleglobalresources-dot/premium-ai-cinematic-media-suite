@@ -1,4 +1,4 @@
-import type { Look } from "./types";
+import { DEFAULT_GRADE, type Grade, type Look } from "./types";
 
 export const BUILTIN_LOOKS: Look[] = [
   {
