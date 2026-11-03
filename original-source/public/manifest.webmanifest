@@ -1,0 +1,13 @@
+{
+  "name": "Obsidian Cinema Studio",
+  "short_name": "Obsidian",
+  "description": "Premium live camera, broadcast, cinematic grading and editing suite.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "orientation": "any",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
