@@ -379,7 +379,7 @@ export function LookBrowser({ grade, onChange, compact }: { grade: Grade; onChan
         ))}
       </div>
       {grade.look && (
-        <Slider className="mt-3" label="Look intensity" value={grade.lookAmount} min={0} max={1.5} reset={1} onChange={(v) => onChange({ ...grade, lookAmount: v })} format={(v) => `${Math.round(v * 100)}%`} />
+        <Slider className="mt-3" label="Look intensity" value={grade.lutIntensity} min={0} max={1} reset={1} onChange={(v) => onChange({ ...grade, lutIntensity: v })} format={(v) => `${Math.round(v * 100)}%`} />
       )}
     </div>
   );
