@@ -109,6 +109,31 @@ export const shotlists = pgTable("shotlists", {
 
 export type Shotlist = typeof shotlists.$inferSelect;
 
+/** WHIP destinations and broadcast history; these match drizzle/0000_initial.sql. */
+export const streamDestinations = pgTable("stream_destinations", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  platform: text("platform").default("custom").notNull(),
+  whipUrl: text("whip_url").notNull(),
+  streamKey: text("stream_key").default("").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const streamSessions = pgTable("stream_sessions", {
+  id: text("id").primaryKey(),
+  title: text("title").default("Untitled broadcast").notNull(),
+  destinationIds: jsonb("destination_ids").$type<string[]>().default([]).notNull(),
+  status: text("status").default("live").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  durationSec: real("duration_sec").default(0).notNull(),
+  peakKbps: real("peak_kbps").default(0).notNull(),
+  avgFps: real("avg_fps").default(0).notNull(),
+  resolution: text("resolution").default("").notNull(),
+  notes: text("notes").default("").notNull(),
+});
+
 export type Project = typeof projects.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
 export type Timeline = typeof timelines.$inferSelect;
