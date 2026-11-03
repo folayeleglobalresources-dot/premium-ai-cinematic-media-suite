@@ -96,6 +96,19 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const shotlists = pgTable("shotlists", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  logline: text("logline").notNull(),
+  genre: text("genre").default("drama").notNull(),
+  tone: text("tone").default("").notNull(),
+  engine: text("engine").default("lumiere-local").notNull(),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type Shotlist = typeof shotlists.$inferSelect;
+
 export type Project = typeof projects.$inferSelect;
 export type Asset = typeof assets.$inferSelect;
 export type Timeline = typeof timelines.$inferSelect;
