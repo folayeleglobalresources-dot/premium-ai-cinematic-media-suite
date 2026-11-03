@@ -8,7 +8,7 @@ import { assetFileUrl, assetThumbUrl, codecOptions, downloadBlob, fetchJSON, fin
 import { MOODS, planAutoEdit, type AutoEditMood, type AutoEditSource } from "@/lib/autoedit";
 import { EditorEngine, sampleEnergy } from "@/lib/editor-engine";
 import { useLooks } from "@/lib/hooks";
-import { DEFAULT_GRADE, GRADE_CONTROLS, newClipId, timelineDuration, type AssetDTO, type Clip, type Grade, type TimelineData, type TransitionType } from "@/lib/types";
+import { DEFAULT_GRADE, GRADE_CONTROLS, newClipId, timelineDuration, type AssetDTO, type Clip, type Grade, type NumericGradeKey, type TimelineData, type TransitionType } from "@/lib/types";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Timeline } from "./Timeline";
@@ -555,7 +555,7 @@ export function Editor({ timelineId }: { timelineId: number }) {
   const filteredAssets = assets.filter((a) => !binFilter || a.name.toLowerCase().includes(binFilter.toLowerCase()) || a.kind.includes(binFilter.toLowerCase()));
   const fps = tl?.fps ?? 24;
   const duration = tl ? timelineDuration(tl) : 0;
-  const clipGradeValue = (k: keyof Grade) => (selected ? selected.grade[k] : 0);
+  const clipGradeValue = (k: NumericGradeKey): number => (selected ? selected.grade[k] : 0);
 
   return (
     <div className="h-[100dvh] md:h-screen flex flex-col bg-obsidian overflow-hidden">
