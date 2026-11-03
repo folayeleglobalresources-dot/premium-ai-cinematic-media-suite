@@ -353,3 +353,67 @@ export function findLook(id: string | null | undefined, extra: Look[] = []): Loo
   if (!id) return undefined;
   return BUILTIN_LOOKS.find((l) => l.id === id) ?? extra.find((l) => l.id === id);
 }
+
+
+/** Compatibility exports used by the capture and monitor interfaces. */
+export const LOOKS = BUILTIN_LOOKS;
+
+export function getLook(id: string | null | undefined): Look | undefined {
+  return findLook(id);
+}
+
+export type ResolvedGrade = {
+  exposure: number; contrast: number; pivot: number; saturation: number; vibrance: number;
+  temperature: number; tint: number; highlights: number; shadows: number; hue: number;
+  lift: [number, number, number]; gamma: [number, number, number]; gain: [number, number, number];
+  slope: [number, number, number]; offset: [number, number, number]; power: [number, number, number];
+  splitShadow: [number, number, number]; splitHigh: [number, number, number];
+  fade: number; vignette: number; grain: number; sharpen: number; halation: number;
+  bloom: number; chromatic: number; mono: boolean;
+};
+
+function tintVector(hue: number, amount: number): [number, number, number] {
+  const h = ((hue % 360) + 360) % 360;
+  const c = 1;
+  const x = 1 - Math.abs(((h / 60) % 2) - 1);
+  let rgb: [number, number, number];
+  if (h < 60) rgb = [c, x, 0];
+  else if (h < 120) rgb = [x, c, 0];
+  else if (h < 180) rgb = [0, c, x];
+  else if (h < 240) rgb = [0, x, c];
+  else if (h < 300) rgb = [x, 0, c];
+  else rgb = [c, 0, x];
+  const luma = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  return rgb.map((v) => (v - luma) * amount) as [number, number, number];
+}
+
+/** Convert the capture/editor grade model into the uniforms consumed by GradeRenderer. */
+export function resolveGrade(input: Partial<Grade> | null | undefined): ResolvedGrade {
+  const g = { ...DEFAULT_GRADE, ...(input ?? {}) };
+  const shadow = tintVector(g.shadowTintHue, g.shadowTintSat);
+  const high = tintVector(g.highlightTintHue, g.highlightTintSat);
+  const exposure = Number.isFinite(g.exposure) ? g.exposure : 0;
+  const contrast = Math.max(0.05, 1 + g.contrast);
+  const saturation = Math.max(0, 1 + g.saturation);
+  const lift = [g.blacks * 0.12, g.blacks * 0.12, g.blacks * 0.12] as [number, number, number];
+  const gain = [1 + g.whites * 0.12, 1 + g.whites * 0.12, 1 + g.whites * 0.12] as [number, number, number];
+  const gammaValue = Math.max(0.05, 1 - g.shadows * 0.12);
+  return {
+    exposure, contrast, pivot: 0.45, saturation, vibrance: g.vibrance,
+    temperature: g.temperature, tint: g.tint, highlights: g.highlights, shadows: g.shadows,
+    hue: g.hue, lift, gamma: [gammaValue, gammaValue, gammaValue], gain,
+    slope: [1, 1, 1], offset: [0, 0, 0], power: [1, 1, 1],
+    splitShadow: shadow, splitHigh: high, fade: g.fade, vignette: g.vignette,
+    grain: g.grain, sharpen: g.sharpen, halation: g.bloom, bloom: g.bloom,
+    chromatic: 0, mono: g.saturation <= -1,
+  };
+}
+
+/** Wheel coordinates are normalized around neutral and weighted by the master amount. */
+export function wheelToRgb(wheel: { x: number; y: number; m: number }, _exposure = 1, _saturation = 1): [number, number, number] {
+  const radius = Math.min(1, Math.hypot(wheel.x, wheel.y));
+  if (!radius || !Number.isFinite(radius)) return [0, 0, 0];
+  const hue = (Math.atan2(wheel.y, wheel.x) * 180 / Math.PI + 360) % 360;
+  const rgb = tintVector(hue, radius * Math.max(-1, Math.min(1, wheel.m)));
+  return rgb;
+}
