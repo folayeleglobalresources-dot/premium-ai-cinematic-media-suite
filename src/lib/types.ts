@@ -328,3 +328,28 @@ export type AssetMeta = {
   projectId: string | null;
   createdAt: string;
 };
+
+
+export type FormatPreset = {
+  id: string;
+  label: string;
+  group: "Cinema" | "Broadcast" | "Social" | "Vintage";
+  width: number;
+  height: number;
+  aspect: string;
+  fps: number;
+  note: string;
+};
+
+export const FORMAT_PRESETS: FormatPreset[] = [
+  { id: "hd", label: "HD 1080p", group: "Cinema", width: 1920, height: 1080, aspect: "16:9", fps: 24, note: "A balanced widescreen canvas for narrative work." },
+  { id: "dci4k", label: "DCI 4K", group: "Cinema", width: 4096, height: 2160, aspect: "1.90:1", fps: 24, note: "The digital cinema standard for theatrical delivery." },
+  { id: "scope", label: "Anamorphic Scope", group: "Cinema", width: 4096, height: 1716, aspect: "2.39:1", fps: 24, note: "A wide theatrical frame for expansive compositions." },
+  { id: "uhd", label: "UHD 4K", group: "Broadcast", width: 3840, height: 2160, aspect: "16:9", fps: 25, note: "Ultra HD delivery for modern broadcast and streaming." },
+  { id: "broadcast-hd", label: "Broadcast HD", group: "Broadcast", width: 1920, height: 1080, aspect: "16:9", fps: 25, note: "A dependable full-HD broadcast master." },
+  { id: "vertical", label: "Vertical 9:16", group: "Social", width: 1080, height: 1920, aspect: "9:16", fps: 30, note: "Portrait framing for short-form mobile video." },
+  { id: "square", label: "Square 1:1", group: "Social", width: 1080, height: 1080, aspect: "1:1", fps: 30, note: "A square canvas for social feeds and promos." },
+  { id: "social-wide", label: "Wide 16:9", group: "Social", width: 1920, height: 1080, aspect: "16:9", fps: 30, note: "A landscape social master for video platforms." },
+  { id: "super16", label: "Super 16", group: "Vintage", width: 2048, height: 1536, aspect: "4:3", fps: 24, note: "A classic 4:3 frame for a tactile film-era feel." },
+  { id: "academy", label: "Academy 35mm", group: "Vintage", width: 1828, height: 1332, aspect: "1.37:1", fps: 24, note: "The traditional Academy frame for period-inspired work." },
+];
